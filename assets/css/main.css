@@ -1,0 +1,6 @@
+@import '@/assets/fonts/FantasqueSansMono-Bold-decl.css'
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+

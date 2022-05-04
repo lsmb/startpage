@@ -1,0 +1,7 @@
+@font-face {
+  font-family: 'Fantasque Sans Mono';
+  src: url('../fonts/FantasqueSansMono-Bold.woff2') format('woff2'),
+       url('../fonts/FantasqueSansMono-Bold.woff') format('woff'); /* Firefox >= 3.6, any other modern browser */
+  font-weight: 700;
+  font-style: normal;
+}
