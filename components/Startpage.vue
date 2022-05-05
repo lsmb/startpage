@@ -1,13 +1,14 @@
 <template>
   <div class="grid grid-flow-col columns-2 place-content-center h-screen items-center gap-7">
     <!-- <img src="https://cdn.anime-pictures.net/previews/7cd/7cd2fa5e4ef00cbe515371b0d7bfc996_bp.png" /> -->
-    <img v-bind:src="bgURL" />
+    <img v-bind:src="bg[bg.length - 1].URL" class="max-h-96 max-w-96" />
 
     <div class="ml-20 grid rows-2 grid-flow-row">
       <div class="pl-20">
         <p class="font-bold font-sans text-header text-3xl">
           > ~/
-          <CommandInput autofocus @bg-change="bgChanged" @config-open="openConfig" ref="command" />
+          <CommandInput :bgData="bg" :listData="allLinksData" autofocus @bg-change="bgChanged" @config-open="openConfig"
+            ref="command" @refresh-data="dataChanged" />
 
         </p>
         <Config :show="showConfig" @close="showConfig = false" ref="configModal">
@@ -24,7 +25,7 @@
       </div>
 
       <div class="mt-20 grid columns-4 grid-flow-col">
-        <ul class="text-center" v-for="(listItem, listName) in allLinks" :key="listName">
+        <ul class="text-center" v-for="(listItem, listName) in allItems" :key="listName">
           <li class="font-bold text-xl text-header">{{ listName }}</li>
           <li v-for="(item, itemName) in listItem">
             <a class="text-list font-bold" :href="item">{{ itemName }}</a>
@@ -36,40 +37,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeMount } from 'vue'
 
 const command = ref()
+const allItems = ref()
 
-// onMounted(() => {
-//   command.$el.focus()
-// })
-
-const { data: allLinksData } = await useFetch(
+const { data: allLinksData, refresh } = await useFetch(
   'http://localhost:5192/api/links'
 )
 
-const allLinks = ref(allLinksData.value.reduce((acc, link) => {
-  if (!acc[link.category]) {
-    acc[link.category] = {}
-  }
-  acc[link.category][link.name] = link.URL
-  return acc
-}, {}))
+const { data: bg, refresh: refreshBg } = await useFetch('http://localhost:5192/api/bg')
 
+async function getLinksData() {
+  console.log("new data is:", allLinksData.value)
+  allItems.value = allLinksData.value.reduce((acc, link) => {
+    if (!acc[link.category]) {
+      acc[link.category] = {}
+    }
+    acc[link.category][link.name] = link.URL
+    return acc
+  }, {})
+  console.log("Yeh I'm doin it")
+}
 
-// const allLinks = ref(allLinksData.value.map(link => {
-//   return {
-//     [link.category]: {
-//       [link.name]: link.URL
-//     }
-//   }
-// }))
+async function refreshData() {
+  await refresh()
+  await getLinksData()
+}
 
-// allLinks.value.map(link => {
-//   console.log("ID is:", link.Id)
-// })
-console.log(allLinksData)
-console.log("LE VALUES: ", allLinks.value)
+await getLinksData()
+
+console.log("BG is", bg)
+console.log(allItems)
+console.log("LE VALUES: ", allItems.value)
 
 const bgURL = ref('https://cdn.anime-pictures.net/previews/80d/80dfc1a8cee67bf2235580e8777ca7cf_bp.png')
 const showConfig = ref(false)
@@ -109,7 +109,12 @@ function openConfig() {
   console.log('suup 2')
 }
 function bgChanged(changedBg: string) {
-  bgURL.value = changedBg
+  refreshBg()
+}
+
+
+async function dataChanged() {
+  refreshData()
 }
 
 function onInput(e: Event) {
