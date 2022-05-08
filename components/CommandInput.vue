@@ -4,20 +4,21 @@ import { addListener } from 'process';
 
 const command = ref()
 
-const emit = defineEmits(['configOpen', 'bgChange', 'refreshData'])
+const emit = defineEmits(['configOpen', 'bgChange', 'refreshData', 'pathChanged'])
 const props = defineProps({
-  listData: {
+  itemData: {
     type: Object,
     required: true
   },
   bgData: {
     type: Object,
     required: true
+  },
+  path: {
+    type: String,
+    required: true
   }
 })
-
-
-let bgURL = "https://images.anime-pictures.net/7cd/7cd2fa5e4ef00cbe515371b0d7bfc996.png?if=ANIME-PICTURES.NET_-_750381-1155x1995-spy+x+family-yor+briar-kaetzchen-single-long+hair-tall+image.png"
 
 function onInput(e: Event) {
   command.value = (<HTMLInputElement>e.target).value
@@ -50,58 +51,54 @@ async function deleteCategory(category: string) {
   })
 }
 
-async function addLink(args: string[]) {
-  console.log('meme', args)
-  if (args.length >= 3) {
-    if (args.length !== 4) {
-      args.push("50")
+async function echo(cmd: string) {
+  console.log('meme', cmd)
+  let priority: number = 50
+  if (cmd.includes(" > ")) {
+    let sections: string[] = cmd.split(" > ")
+    if (sections.length === 3) {
+      priority = parseInt(sections[2])
     }
 
-    let categoryName = args[0]
-    switch (args[0]) {
+    let dirName = sections[0]
+    switch (sections[0]) {
       case "r":
-        categoryName = "reddit"
+        dirName = "reddit"
         break;
       case "t":
-        categoryName = "trackers"
+        dirName = "trackers"
         break;
       case "p":
-        categoryName = "play"
+        dirName = "play"
         break;
       case "d":
-        categoryName = "dev"
+        dirName = "dev"
         break;
       default:
         break;
     }
 
-    const data: Link = {
-      category: categoryName,
-      name: args[1],
-      URL: args[2],
-      priority: parseInt(args[3])
-    }
-    console.log("Memes,", JSON.stringify(data))
-    await postLink(data)
-    console.log("MAAAN")
+
+    await $fetch(`http://localhost:5192/api/items/${props.path}`, {
+      method: 'POST',
+      body: { name: sections[1], priority: priority ? priority : 50, URL: sections[0] }
+    })
+
     emit("refreshData")
   }
 }
 
-async function removeLink(args: string[]) {
+async function rm(name: string) {
   console.log('Deleting')
-  if (args.length === 1) {
-    var selectedItem = props.listData.filter(x => {
-      return x.name === args[0]
-    })
-    console.log("Item is:", selectedItem)
-    if (selectedItem.length !== 1) {
-      console.log('Multiple same named. Implement error message here')
-    } else {
-      await deleteLink(selectedItem[0].Id)
-      emit('refreshData')
-    }
-  }
+
+  await $fetch(`http://localhost:5192/api/items/${props.path}/${name}`, {
+    method: 'DELETE'
+  })
+
+  emit('refreshData')
+
+
+
 }
 
 
@@ -135,10 +132,55 @@ async function deleteLatestBg(id: string) {
   emit('bgChange')
 }
 
+async function mkdirPost(cmd: string) {
+  console.log('Cmd post is', cmd)
+
+  let sections: string[] = cmd.split(" > ")
+  let itemPriority: number = 50
+
+  itemPriority = 50
+  console.log("Secs are:", sections)
+  console.log("Priority is:", itemPriority)
+
+  if (cmd.length > 1) {
+    itemPriority = parseInt(sections[1])
+  }
+
+  await $fetch('http://localhost:5192/api/items', {
+    method: 'POST',
+    body: { name: sections[0], priority: itemPriority ? itemPriority : 50 }
+  })
+  emit('refreshData')
+}
+
+async function rmDir(name: string) {
+  console.log("Name is:", name)
+  await $fetch(`http://localhost:5192/api/items/${name}`, {
+    method: 'DELETE'
+  })
+  emit('refreshData')
+}
+
+
 function onEnter(e: Event) {
   let values = command.value.split(" ")
-  const args = values.slice(1)
+  const args: string[] = values.slice(1)
   switch (values[0]) {
+    case "cd":
+      console.log("Current path:", props.path)
+      console.log("ItemData:", props.itemData)
+
+      if (args[0] === "..") {
+        emit("pathChanged", null)
+      } else if (props.itemData.some((x: String) => x['name'] === args[0])) {
+        console.log("AYOOO")
+        emit("pathChanged", args[0])
+      }
+
+      break
+    case "mkdir":
+      mkdirPost(command.value.slice(6))
+      break
     case "yt":
       if (values[1] !== undefined) {
 
@@ -161,16 +203,16 @@ function onEnter(e: Event) {
       addNewBg(args[0])
       console.log('hi')
       break
-    case "touch":
-      addLink(args)
-      break;
+    case "echo":
+      echo(command.value.slice(5))
+      break
     case "rm":
       if (args[0] === "-r") {
-        removeCategory(args[1])
-        break;
+        rmDir(command.value.slice("rm -r ".length))
+        break
       }
-      removeLink(args)
-      break;
+      rm(args[0])
+      break
     default:
       window.location.href = "https://www.google.com/search?q=" + values.join(" ")
   }
