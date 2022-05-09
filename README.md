@@ -1,6 +1,5 @@
-# Nuxt 3 Minimal Starter
-
-Look at the [nuxt 3 documentation](https://v3.nuxtjs.org) to learn more.
+# Startpage
+A simple, configurable start-page using Nuxt3 and Vue3.
 
 ## Setup
 
@@ -16,6 +15,7 @@ npm install
 # pnpm
 pnpm install --shamefully-hoist
 ```
+
 
 ## Development Server
 
