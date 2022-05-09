@@ -40,7 +40,6 @@ getDate()
 
 setInterval(() => {
   getTime()
-  console.log("time calc")
 }, 1000)
 
 </script>

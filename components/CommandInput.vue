@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { addListener } from 'process';
 
 const command = ref()
 
@@ -24,27 +23,6 @@ function onInput(e: Event) {
   command.value = (<HTMLInputElement>e.target).value
 }
 
-interface Link {
-  name: string
-  URL: string
-  category: string
-  priority: number
-}
-
-async function postLink(data: Link) {
-  console.log('Data for post is', data)
-  await $fetch('http://localhost:5192/api/links', {
-    method: 'POST',
-    body: data
-  })
-}
-
-async function deleteLink(id: string) {
-  await $fetch(`http://localhost:5192/api/links/${id}`, {
-    method: 'DELETE'
-  })
-}
-
 async function deleteCategory(category: string) {
   await $fetch(`http://localhost:5192/api/links/${category}`, {
     method: 'DELETE'
@@ -59,25 +37,6 @@ async function echo(cmd: string) {
     if (sections.length === 3) {
       priority = parseInt(sections[2])
     }
-
-    let dirName = sections[0]
-    switch (sections[0]) {
-      case "r":
-        dirName = "reddit"
-        break;
-      case "t":
-        dirName = "trackers"
-        break;
-      case "p":
-        dirName = "play"
-        break;
-      case "d":
-        dirName = "dev"
-        break;
-      default:
-        break;
-    }
-
 
     await $fetch(`http://localhost:5192/api/items/${props.path}`, {
       method: 'POST',
@@ -96,16 +55,10 @@ async function rm(name: string) {
   })
 
   emit('refreshData')
-
-
-
 }
 
-
 async function removeCategory(category: string) {
-  console.log('meme')
   if (category) {
-    console.log("Yep got here")
     await deleteCategory(category)
     emit('refreshData')
   }
@@ -118,7 +71,6 @@ async function postBg(URL: string) {
     body: { URL: URL }
   })
 }
-
 
 async function addNewBg(URL: string) {
   await postBg(URL)
@@ -133,14 +85,10 @@ async function deleteLatestBg(id: string) {
 }
 
 async function mkdirPost(cmd: string) {
-  console.log('Cmd post is', cmd)
-
   let sections: string[] = cmd.split(" > ")
   let itemPriority: number = 50
 
   itemPriority = 50
-  console.log("Secs are:", sections)
-  console.log("Priority is:", itemPriority)
 
   if (cmd.length > 1) {
     itemPriority = parseInt(sections[1])
@@ -160,7 +108,6 @@ async function rmDir(name: string) {
   })
   emit('refreshData')
 }
-
 
 function onEnter(e: Event) {
   let values = command.value.split(" ")
@@ -218,26 +165,9 @@ function onEnter(e: Event) {
   }
   command.value = ""
 }
-
-
-
-
-
-// console.log(allLinks.value[0])
 </script>
 
 <template>
   <input class="focus:outline-none bg-bg caret-pink-500" :value="command" @input="onInput" v-on:keyup.enter="onEnter"
     placeholder="" />
 </template>
-
-
-<!-- <script lang="ts"> -->
-<!-- export default { -->
-<!--   data() { -->
-<!--     return { -->
-<!--     } -->
-<!--   }, -->
-<!--   methods:  -->
-<!-- } -->
-<!-- </script> -->
