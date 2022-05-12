@@ -14,7 +14,6 @@ const props = defineProps({
     required: true
   },
   path: {
-    type: String,
     required: true
   }
 })
@@ -55,13 +54,6 @@ async function rm(name: string) {
   })
 
   emit('refreshData')
-}
-
-async function removeCategory(category: string) {
-  if (category) {
-    await deleteCategory(category)
-    emit('refreshData')
-  }
 }
 
 async function postBg(URL: string) {
@@ -109,9 +101,71 @@ async function rmDir(name: string) {
   emit('refreshData')
 }
 
+async function mvDir(name: string, newName: string, priority?: number) {
+  console.log("Name is:", name)
+
+  const body = { name: newName }
+  if (priority) {
+    body["priority"] = priority
+  }
+
+  await $fetch(`http://localhost:5192/api/items/${name}`, {
+    method: 'PUT',
+    body: body
+  })
+  emit('refreshData')
+}
+
+
+async function mvFile(linkName: string, newLinkName: string, priority?: number) {
+  console.log("New name is:", linkName)
+
+  const body = { name: newLinkName }
+  if (priority) {
+    body["priority"] = priority
+  }
+
+  await $fetch(`http://localhost:5192/api/items/${props.path}/${linkName}`, {
+    method: 'PUT',
+    body: body
+  })
+  emit('refreshData')
+}
+
+async function mv(args: string[]) {
+
+  console.log('mv args are', args)
+  console.log('Stuff is:', props.itemData)
+
+  if (args.length > 2) {
+    console.log("No such item")
+    return
+  }
+
+  if (!props.path) {
+    console.log("Folders")
+    const selectedItem = props.itemData.filter(item => item.name === args[0])
+    console.log("Sel item:", selectedItem)
+    console.log("Sel item name:", selectedItem[0].name)
+    await mvDir(selectedItem[0].name, args[1])
+  } else {
+    await mvFile(args[0], args[1])
+  }
+
+
+}
+
 function onEnter(e: Event) {
   let values = command.value.split(" ")
-  const args: string[] = values.slice(1)
+
+  const argsUnparsed: string = values.slice(1).join(" ")
+  const regex = new RegExp('"[^"]+"|[\\S]+', 'g');
+  const args = [];
+  argsUnparsed.match(regex).forEach(element => {
+    if (!element) return;
+    return args.push(element.replace(/"/g, ''));
+  });
+
   switch (values[0]) {
     case "cd":
       console.log("Current path:", props.path)
@@ -155,10 +209,13 @@ function onEnter(e: Event) {
       break
     case "rm":
       if (args[0] === "-r") {
-        rmDir(command.value.slice("rm -r ".length))
+        rmDir(args[1])
         break
       }
       rm(args[0])
+      break
+    case "mv":
+      mv(args)
       break
     default:
       window.location.href = "https://www.google.com/search?q=" + values.join(" ")
